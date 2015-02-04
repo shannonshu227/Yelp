@@ -8,8 +8,9 @@
 
 #import <UIKit/UIKit.h>
 
+
+
 @interface DropdownCell : UITableViewCell
 @property (weak, nonatomic) IBOutlet UILabel *dropdownLabel;
-
 @property (weak, nonatomic) IBOutlet UILabel *dropdownTriangleLabel;
 @end

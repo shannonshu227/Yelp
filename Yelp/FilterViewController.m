@@ -13,14 +13,16 @@
 #import "CategoryViewController.h"
 
 
+//@interface FilterViewController () <UITableViewDataSource, UITableViewDelegate, SwitchCellDelegate, CategoryViewControllerDelegate, DropdownCellDelegate>
 @interface FilterViewController () <UITableViewDataSource, UITableViewDelegate, SwitchCellDelegate, CategoryViewControllerDelegate>
+
 @property (weak, nonatomic) IBOutlet UITableView *tableView;
-@property (strong, nonatomic) NSMutableSet *selectedSwitches;
 @property (strong, nonatomic) NSMutableArray *selectedIndexPath;
 @property (strong, nonatomic) NSDictionary *filters;
 @property (strong, nonatomic) NSDictionary *categoryFilters;
 @property (strong, nonatomic) NSMutableArray *categorySelectedIndexPath;
-
+@property (strong, nonatomic) NSMutableIndexSet *expandedSections;
+@property (strong, nonatomic) NSMutableArray *dropdownSelectedIndexPath;
 
 @end
 
@@ -33,17 +35,22 @@
     if (self) {
         self.categoryFilters = [NSDictionary dictionary];
         self.categorySelectedIndexPath = [NSMutableArray array];
+        
+        self.expandedSections = [[NSMutableIndexSet alloc] init];
+        self.dropdownSelectedIndexPath = [NSMutableArray array];
+
     }
     return  self;
 }
 
-- (id)initWithFilters:(NSDictionary *) filters withSelectedIndexPath: (NSMutableArray *) selectedIndexPath {
+- (id)initWithFilters:(NSDictionary *) filters withSelectedIndexPath: (NSMutableArray *) selectedIndexPath withDropdownSelectedIndexPath: (NSMutableArray *) dropdownSelectedIndexPath {
     self = [super init];
     if (self) {
         // setup
         self.filters = filters;
         //note: it's a copy. or they will point to same address and cancel button won't work
         self.selectedIndexPath = [selectedIndexPath mutableCopy];
+        self.dropdownSelectedIndexPath = [dropdownSelectedIndexPath mutableCopy];
         
     }
     return self;
@@ -132,10 +139,21 @@
             row = 4;
             break;
         case 2:
-            row = 1;
+            if ([self.expandedSections containsIndex:section]) {
+                row = 5;
+            } else {
+                row = 1;
+            }
+            
             break;
         case 3:
-            row = 1;
+            
+            if ([self.expandedSections containsIndex:section]) {
+                row = 4;
+            } else {
+                row = 1;
+            }
+            
             break;
         case 4:
             row = 3;
@@ -148,6 +166,14 @@
             
     }
     return row;
+}
+
+
+- (BOOL)tableView:(UITableView *)tableView canCollapseSection:(NSInteger)section
+{
+    if (section>0) return YES;
+    
+    return NO;
 }
 
 -(UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
@@ -200,15 +226,36 @@
         
     } else if (indexPath.section == 2) {
         DropdownCell *cell = [tableView dequeueReusableCellWithIdentifier:@"DropdownCellID"];
-        cell.dropdownLabel.text = @"Auto";
-        cell.dropdownTriangleLabel.text = @"\u25BE";
+        NSArray *labels = @[@"Auto", @"0.3 miles", @"1 mile", @"5 miles", @"20 miles"];
+        cell.dropdownLabel.text = labels[indexPath.row];
+        
+        if ([self.dropdownSelectedIndexPath containsObject:indexPath]) {
+            cell.dropdownTriangleLabel.text = @"\u2713";
+        } else {
+            if (indexPath.row == 0) {
+                cell.dropdownTriangleLabel.text = @"\u25BE";
+            } else {
+                cell.dropdownTriangleLabel.text = @"";
+            }
+        }
+        
         return cell;
         
     } else if (indexPath.section == 3) {
         DropdownCell *cell = [tableView dequeueReusableCellWithIdentifier:@"DropdownCellID"];
-        cell.dropdownLabel.text = @"Best Match";
-        cell.dropdownTriangleLabel.text = @"\u25BE";
         
+        NSArray *labels = @[@"Best Match", @"Distance", @"Rating", @"Most Reviewed"];
+        cell.dropdownLabel.text = labels[indexPath.row];
+
+        if ([self.dropdownSelectedIndexPath containsObject:indexPath]) {
+            cell.dropdownTriangleLabel.text = @"\u2713";
+        } else {
+            if (indexPath.row == 0) {
+                cell.dropdownTriangleLabel.text = @"\u25BE";
+            } else {
+                cell.dropdownTriangleLabel.text = @"";
+            }
+        }
         return cell;
     } else if (indexPath.section == 4){
         SwitchCell *cell = [tableView dequeueReusableCellWithIdentifier:@"SwitchCellID"];
@@ -296,15 +343,19 @@
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
+
     
-    if (indexPath.section == 2 && indexPath.row == 0) {
+    if (indexPath.section == 2) {
        //handle dropdown list for distance
+        [self selectCellAtIndexPath:indexPath];
     }
     
-    if (indexPath.section == 3 && indexPath.row == 0) {
+    if (indexPath.section == 3) {
         //handle dropdown list for sortby
+        [self selectCellAtIndexPath:indexPath];
     }
     
+    NSLog(@"count:%lu", (unsigned long)self.dropdownSelectedIndexPath.count);
     if (indexPath.section == 5 && indexPath.row == 0) {
         
         CategoryViewController *vc = [[CategoryViewController alloc] initWithCategories:self.categoryFilters withSelectedIndexPath:self.categorySelectedIndexPath];
@@ -331,21 +382,98 @@
     }
 }
 
+//- (void) dropdownCell:(DropdownCell *)cell didSelected:(BOOL)value
 
 - (void) onCancelButton {
     [self dismissViewControllerAnimated:YES completion:nil];
 }
 
 - (void) onSearchButton {
-    [self.delegate filterViewController:self didChangeFilters:self.filters atIndexPath:self.selectedIndexPath];
+    [self.delegate filterViewController:self didChangeFilters:self.filters atIndexPath:self.selectedIndexPath withDropdownSelected:self.dropdownSelectedIndexPath];
     [self dismissViewControllerAnimated:YES completion:nil];
 }
 
 
 - (void) categoryViewController:(CategoryViewController *) categoryViewController didChangeCategories:(NSDictionary *) filters atIndexPath:(NSMutableArray *) selectedIndexPath {
-    NSLog(@"category change...");
     self.categoryFilters = filters;
     self.categorySelectedIndexPath = selectedIndexPath;
+    NSLog(@"category change to:%@", filters);
+}
+
+
+- (void) updateSectionAtIndexPath:(NSIndexPath *) indexPath {
+    if ([ self.expandedSections containsIndex:indexPath.section]) {
+        
+        [self.expandedSections removeIndex:indexPath.section];
+        [self.tableView beginUpdates];
+        NSInteger row =[self.tableView numberOfRowsInSection:indexPath.section];
+        
+        [self.tableView deleteRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
+        NSIndexSet *sections = [NSIndexSet indexSetWithIndex:indexPath.section];
+        [self.tableView reloadSections:sections withRowAnimation:UITableViewRowAnimationAutomatic];
+        [self.tableView endUpdates];
+        
+        NSLog(@"if expanded sections contained current section, row in section:%ld", (long)row);
+        
+        
+    } else {
+        [self.tableView beginUpdates];
+        NSInteger row =[self.tableView numberOfRowsInSection:indexPath.section];
+        [self.tableView insertRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
+        [self.expandedSections addIndex:indexPath.section];
+        
+        NSIndexSet *sections = [NSIndexSet indexSetWithIndex:indexPath.section];
+        [self.tableView reloadSections:sections withRowAnimation:UITableViewRowAnimationAutomatic];
+        [self.tableView endUpdates];
+        
+        NSLog(@"if expanded sections don't contain current section, row in section: %ld", (long)row);
+        
+        
+    }
+    
+}
+
+
+- (void) selectCellAtIndexPath: (NSIndexPath *) indexPath {
+    if (indexPath.row == 0) {
+        [self updateSectionAtIndexPath:indexPath];
+    } else {
+        if([self.dropdownSelectedIndexPath containsObject:indexPath]) {
+            [self.dropdownSelectedIndexPath removeObject:indexPath];
+            
+        } else {
+            for (NSIndexPath *ipath in self.dropdownSelectedIndexPath) {
+                if (ipath.section == indexPath.section) { //cannot remove all objects here. it will also erase selection for distance if current section is sortby
+                    [self.dropdownSelectedIndexPath removeObject:ipath];
+                }
+            }
+            [self.dropdownSelectedIndexPath addObject:indexPath];
+        }
+        [self.tableView cellForRowAtIndexPath:indexPath];
+        [self.tableView reloadSections:[NSIndexSet indexSetWithIndex:indexPath.section] withRowAnimation:UITableViewRowAnimationAutomatic];
+    }
+
+}
+
+
+- (void) configureFilters {
+    //add self.categoryFilters into filters.
+    //add dropdownSelectedIndexPath into filters, which includes sortby and distance
+    //add selectedIndexPath into filters
+    
+    NSMutableDictionary *filters = [ self.categoryFilters mutableCopy];
+    
+    
+    
+//    if(self.selectedCategories.count > 0) {
+//        NSMutableArray *names = [NSMutableArray array];
+//        for (NSDictionary *category in self.selectedCategories) {
+//            [names addObject:category[@"code"]];
+//        }
+//        NSString *categoryFilter = [names componentsJoinedByString:@","];
+//        [filters setObject:categoryFilter forKey:@"category_filter"];
+//    }
+
 }
 
 @end

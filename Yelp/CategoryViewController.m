@@ -101,6 +101,18 @@
 
 }
 
+- (NSDictionary *) filters {
+    NSMutableDictionary *filters = [ NSMutableDictionary dictionary];
+    if(self.selectedCategories.count > 0) {
+        NSMutableArray *names = [NSMutableArray array];
+        for (NSDictionary *category in self.selectedCategories) {
+            [names addObject:category[@"code"]];
+        }
+        NSString *categoryFilter = [names componentsJoinedByString:@","];
+        [filters setObject:categoryFilter forKey:@"category_filter"];
+    }
+    return filters;
+}
 
 - (void) onCancelButton {
     [self dismissViewControllerAnimated:YES completion:nil];

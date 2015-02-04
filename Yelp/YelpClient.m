@@ -20,20 +20,20 @@
     return self;
 }
 
-- (AFHTTPRequestOperation *)searchWithTerm:(NSString *)term atOffset:(NSString *) offset success:(void (^)(AFHTTPRequestOperation *operation, id response))success failure:(void (^)(AFHTTPRequestOperation *operation, NSError *error))failure {
+- (AFHTTPRequestOperation *)searchWithTerm:(NSString *)term atOffset:(NSString *) offset withParams:(NSDictionary *) params success:(void (^)(AFHTTPRequestOperation *operation, id response))success failure:(void (^)(AFHTTPRequestOperation *operation, NSError *error))failure {
     
     // For additional parameters, see http://www.yelp.com/developers/documentation/v2/search_api
    
    //NSDictionary *parameters = @{@"term": term, @"ll" : @"37.774866,-122.394556", @"offset" : offset, @"deals_filter" : @"", @"radius_filter" : @"", @"category_filter" : @"", @"sort" : @""};
-    NSDictionary *parameters = @{@"term": term, @"ll" : @"37.774866,-122.394556", @"offset" : offset, @"deals_filter" : @""};
+    NSDictionary *defaults = @{@"term": term, @"ll" : @"37.774866,-122.394556", @"offset" : offset};
+    NSMutableDictionary *allParams = [defaults mutableCopy];
+    if (params) {
+        [allParams addEntriesFromDictionary:params];
+    }
     
-//    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-//    NSString *state = [defaults objectForKey:@"8"]; //8 is 1*6+2, the deal switch
-//    if ([state isEqualToString:@"yes"]) {
-//        
-//    }
+
     
-    return [self GET:@"search" parameters:parameters success:success failure:failure];
+    return [self GET:@"search" parameters:allParams success:success failure:failure];
 }
 
 @end

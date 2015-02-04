@@ -11,12 +11,12 @@
 @class FilterViewController;
 @protocol FilterViewControllerDelegate <NSObject>
 
-- (void) filterViewController:(FilterViewController *) filterViewController didChangeFilters:(NSDictionary *) filters atIndexPath:(NSMutableArray *) selectedIndexPath;
+- (void) filterViewController:(FilterViewController *) filterViewController didChangeFilters:(NSDictionary *) filters atIndexPath:(NSMutableArray *) selectedIndexPath withDropdownSelected:(NSMutableArray *) dropdownSelectedIndexPath;
 
 
 @end
 
 @interface FilterViewController : UIViewController
 @property (weak, nonatomic) id<FilterViewControllerDelegate> delegate;
-- (id)initWithFilters:(NSDictionary *) filters withSelectedIndexPath: (NSMutableArray *) selectedIndexPath;
+- (id)initWithFilters:(NSDictionary *) filters withSelectedIndexPath: (NSMutableArray *) selectedIndexPath withDropdownSelectedIndexPath:(NSMutableArray *) dropdownSelectedIndexPath;
 @end

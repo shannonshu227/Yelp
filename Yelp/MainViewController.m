@@ -26,6 +26,7 @@ NSString * const kYelpTokenSecret = @"VH5OBKvsPIUK49xcTj20kPCbj0Q";
 @property (nonatomic, strong) UISearchBar *searchBar;
 @property (nonatomic, strong) NSDictionary *filters;
 @property (nonatomic, strong) NSMutableArray *selectedIndexPath;
+@property (nonatomic, strong) NSMutableArray *dropdownSelectedIndexPath;
 
 -(IBAction)filterView: (id) sender;
 
@@ -53,6 +54,7 @@ NSString * const kYelpTokenSecret = @"VH5OBKvsPIUK49xcTj20kPCbj0Q";
         //allocate space for properties..!!!
         self.filters = [NSDictionary dictionary];
         self.selectedIndexPath = [NSMutableArray array];
+        self.dropdownSelectedIndexPath = [NSMutableArray array];
 
     }
     return self;
@@ -138,7 +140,7 @@ NSString * const kYelpTokenSecret = @"VH5OBKvsPIUK49xcTj20kPCbj0Q";
     // SomeService is just a dummy class representing some
     // api that you are using to do the search
     
-    [self.client searchWithTerm:searchBar.text atOffset:@"0" success:^(AFHTTPRequestOperation *operation, id response) {
+    [self.client searchWithTerm:searchBar.text atOffset:@"0" withParams:self.filters success:^(AFHTTPRequestOperation *operation, id response) {
         NSLog(@"response: %@", response);
         NSArray *businessesDictionaries = response[@"businesses"];
         self.businesses = [Business businessesWithDictionaries:businessesDictionaries];
@@ -162,7 +164,7 @@ NSString * const kYelpTokenSecret = @"VH5OBKvsPIUK49xcTj20kPCbj0Q";
     dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
         
         NSString *offset =[NSString stringWithFormat:@"%lu", (unsigned long)self.businesses.count];
-        [self.client searchWithTerm:self.searchBar.text atOffset:offset success:^(AFHTTPRequestOperation *operation, id response) {
+        [self.client searchWithTerm:self.searchBar.text atOffset:offset withParams:self.filters success:^(AFHTTPRequestOperation *operation, id response) {
             
             NSLog(@"response: %@", response);
             NSArray *businessesDictionaries = response[@"businesses"];
@@ -189,17 +191,18 @@ NSString * const kYelpTokenSecret = @"VH5OBKvsPIUK49xcTj20kPCbj0Q";
 }
 
 -(IBAction)filterView: (id) sender {
-    
-    FilterViewController *vc = [[FilterViewController alloc] initWithFilters:self.filters withSelectedIndexPath:self.selectedIndexPath];
+    FilterViewController *vc = [[FilterViewController alloc] initWithFilters:self.filters withSelectedIndexPath:self.selectedIndexPath withDropdownSelectedIndexPath: self.dropdownSelectedIndexPath];
     vc.delegate = self;
     UINavigationController *nvc = [[UINavigationController alloc] initWithRootViewController:vc];
     [self presentViewController:nvc animated:YES completion:nil];
 }
 
-- (void) filterViewController:(FilterViewController *)filterViewController didChangeFilters:(NSDictionary *)filters atIndexPath:(NSMutableArray *)selectedIndexPath {
+- (void) filterViewController:(FilterViewController *)filterViewController didChangeFilters:(NSDictionary *)filters atIndexPath:(NSMutableArray *)selectedIndexPath withDropdownSelected:(NSMutableArray *)dropdownSelectedIndexPath {
     NSLog(@"filter change...");
     self.filters = filters;
     self.selectedIndexPath = selectedIndexPath;
+    self.dropdownSelectedIndexPath = dropdownSelectedIndexPath;
+    NSLog(@"dropdown:%lu", (unsigned long)self.dropdownSelectedIndexPath.count);
     
 }
 
